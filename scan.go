@@ -12,6 +12,7 @@ type SolidityTyp uint8
 
 type GetValueStorageAtFunc func(s common.Hash) []byte
 
+// GenGetStorageValueFunc this is a wrapper for the storage at function
 func GenGetStorageValueFunc(ctx context.Context, rpcNode string, contractAddr common.Address) GetValueStorageAtFunc {
 	return func(s common.Hash) []byte {
 		cli, err := ethclient.DialContext(ctx, rpcNode)
@@ -65,25 +66,27 @@ func (s SolidityInt) Value(f GetValueStorageAtFunc) interface{} {
 	vb := common.BytesToHash(v).Big()
 	vb.Rsh(vb, s.Offset)
 
-	lengthOffset := new(big.Int)
-	lengthOffset.SetBit(lengthOffset, int(s.Length), 1).Sub(lengthOffset, big.NewInt(1))
-	intValue := new(big.Int)
-	intValue.And(vb, lengthOffset)
+	// get mask for length
+	mask := new(big.Int)
+	mask.SetBit(mask, int(s.Length), 1).Sub(mask, big.NewInt(1))
 
-	// a number with a leading 1 is a negative number and a 0 is a positive number
+	// get value by mask
+	vb.And(vb, mask)
+
+	// signBit is 0 if the value is positive and 1 if it is negative
 	signBit := new(big.Int)
-	signBit.Rsh(intValue, s.Length-1)
+	signBit.Rsh(vb, s.Length-1)
 	if signBit.Uint64() == 0 {
-		return intValue.Uint64()
+		return vb.Uint64()
 
 	} else {
-		// minus one negation
-		intValue.Sub(intValue, big.NewInt(1))
+		// flip the bits
+		vb.Sub(vb, big.NewInt(1))
 		r := make([]byte, 0)
-		for _, b := range intValue.Bytes() {
+		for _, b := range vb.Bytes() {
 			r = append(r, ^b)
 		}
-
+		// convert back to big int
 		return -new(big.Int).SetBytes(r).Int64()
 	}
 
@@ -106,16 +109,18 @@ func (s SolidityUint) Value(f GetValueStorageAtFunc) interface{} {
 	vb := common.BytesToHash(v).Big()
 	vb.Rsh(vb, s.Offset)
 
-	lengthOffset := new(big.Int)
-	lengthOffset.SetBit(lengthOffset, int(s.Length), 1).Sub(lengthOffset, big.NewInt(1))
+	mask := new(big.Int)
+	mask.SetBit(mask, int(s.Length), 1).Sub(mask, big.NewInt(1))
 
-	vb.And(vb, lengthOffset)
+	vb.And(vb, mask)
 
-	uint64MaxBig := common.HexToHash("0xffffffffffffffff").Big()
-	if vb.Cmp(uint64MaxBig) > 0 {
+	// if vb > uint64 max, return hex string, else return uint64
+	if vb.Cmp(big.NewInt(0).SetUint64(1<<64-1)) > 0 {
 		return common.BigToHash(vb).Hex()
+	} else {
+		return vb.Uint64()
 	}
-	return vb.Uint64()
+
 }
 
 type SolidityAddress struct {
@@ -173,7 +178,7 @@ func (s SolidityString) Typ() SolidityTyp {
 	return StringTy
 }
 
-// calculate the string length of the current slot record
+// Value calculate the string length of the current slot record
 // the length of the string exceeds 31 bytes (0x1f), and the entire slot stores the length of the string*2+1
 // the length of the string does not exceed 31 bytes, the rightmost bit of the entire slot stores the character length*2, and the leftmost stores the string content
 // if the last digit is odd then it is a long string, otherwise it is a short  string
@@ -181,17 +186,15 @@ func (s SolidityString) Value(f GetValueStorageAtFunc) interface{} {
 	data := f(s.SlotIndex)
 	v := common.BytesToHash(data).Big()
 
-	// The last bit of the current slot value
-	lastBit := new(big.Int)
-	lastBit.And(v, big.NewInt(0x1))
+	// get the last digit of v
+	lastDigit := v.Bit(0)
 
 	//  equal to 1 means it is a long string
-	if lastBit.Uint64() == 1 {
+	if lastDigit == 1 {
 		// get the current string length bit
 		length := new(big.Int)
 		length.Sub(v, big.NewInt(1)).Div(length, big.NewInt(2)).Mul(length, big.NewInt(8))
 
-		// bits of the current string need to be put into an incomplete slot
 		remainB := new(big.Int)
 		remainB.Mod(length, big.NewInt(256))
 
@@ -202,21 +205,21 @@ func (s SolidityString) Value(f GetValueStorageAtFunc) interface{} {
 			slotNum.Div(length, big.NewInt(256)).Add(slotNum, big.NewInt(1))
 		}
 
-		firstSlot := crypto.Keccak256Hash(s.SlotIndex.Bytes())
+		firstSlotIndex := crypto.Keccak256Hash(s.SlotIndex.Bytes())
 
-		value := f(firstSlot)
+		value := f(firstSlotIndex)
 
 		for i := int64(1); i < slotNum.Int64()-1; i++ {
 			nextSlot := new(big.Int)
-			nextSlot.Add(firstSlot.Big(), big.NewInt(i))
+			nextSlot.Add(firstSlotIndex.Big(), big.NewInt(i))
 			nextValue := f(common.BigToHash(nextSlot))
 			value = append(value, nextValue...)
 		}
 
-		lastSlot := new(big.Int)
-		lastSlot.Add(firstSlot.Big(), big.NewInt(slotNum.Int64()-1))
+		lastSlotIndex := new(big.Int)
+		lastSlotIndex.Add(firstSlotIndex.Big(), big.NewInt(slotNum.Int64()-1))
 
-		lastSlotValue := f(common.BigToHash(lastSlot))
+		lastSlotValue := f(common.BigToHash(lastSlotIndex))
 
 		if remainB.Uint64() == 0 {
 			value = append(value, lastSlotValue...)

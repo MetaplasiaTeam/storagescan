@@ -32,11 +32,10 @@ func (s StructValue) Field(fd string) interface{} {
 
 	slotIndex := new(big.Int)
 	slotIndex.Add(s.baseSlotIndex.Big(), big.NewInt(int64(filedValue.I)))
-	rv := reflect.ValueOf(filedValue.V).Elem()
-	rs := rv.FieldByName("SlotIndex")
-	rs.Set(reflect.ValueOf(common.BigToHash(slotIndex)))
+	// convert the slotIndex to common.Hash and assign it to the SlotIndex field of filed Value.V, using reflection
+	reflect.ValueOf(filedValue.V).Elem().FieldByName("SlotIndex").Set(reflect.ValueOf(common.BigToHash(slotIndex)))
 
-	return rv.Interface().(Variable).Value(s.f)
+	return filedValue.V.Value(s.f)
 
 }
 
@@ -46,5 +45,4 @@ func (s StructValue) String() string {
 		fSting += fmt.Sprintf("%v:%v ", filedName, s.Field(filedName))
 	}
 	return "struct{" + strings.TrimRight(fSting, " ") + "}"
-
 }

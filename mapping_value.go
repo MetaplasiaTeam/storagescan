@@ -38,16 +38,15 @@ func (m MappingValue) Key(k string) interface{} {
 	case AddressTy:
 		keyByte = encodeHexString(k)
 	default:
-		panic("invalid Key-type!")
+		panic("invalid key type")
 
 	}
 
 	slotIndex := crypto.Keccak256Hash(keyByte, m.baseSlotIndex.Bytes())
-	rv := reflect.ValueOf(m.valueTyp).Elem()
-	rs := rv.FieldByName("SlotIndex")
-	rs.Set(reflect.ValueOf(slotIndex))
 
-	return rv.Interface().(Variable).Value(m.f)
+	reflect.ValueOf(m.valueTyp).Elem().FieldByName("SlotIndex").Set(reflect.ValueOf(slotIndex))
+
+	return m.valueTyp.Value(m.f)
 
 }
 
@@ -81,7 +80,7 @@ func encodeIntString(c string) []byte {
 		panic(err)
 	}
 	if intVar < 0 {
-		// 取反加1
+		// invert and add 1
 		bs := common.BigToHash(big.NewInt(intVar)).Bytes()
 		ub := make([]byte, 0)
 		for _, tb := range bs {

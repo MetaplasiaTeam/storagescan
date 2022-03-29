@@ -7,9 +7,8 @@ import (
 	"storagescan"
 )
 
-
 func RopstenTestNet() storagescan.GetValueStorageAtFunc {
-	return storagescan.GenGetStorageValueFunc(context.Background(), "https://ropsten.infura.io/v3", common.HexToAddress("0x24302f327764f94c15d930f5ac70d362b4a156f9"))
+	return storagescan.GenGetStorageValueFunc(context.Background(), "https://ropsten.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161", common.HexToAddress("0x24302f327764f94c15d930f5ac70d362b4a156f9"))
 }
 
 // Int Type
@@ -105,7 +104,6 @@ func GetStringValue() {
 	log.Printf("string2Value:%v\n", string2Value)
 
 }
-
 
 // value is string
 func GetFixedBytesValue() {
@@ -205,13 +203,11 @@ func GetSliceValue() {
 					V: &storagescan.SolidityString{},
 					I: 1,
 				},
-
 			},
 		},
 	}
 	slice5Value := slice5.Value(RopstenTestNet())
 	log.Printf("slice5Value:%v\n", slice5Value)
-
 
 	index1ValueOfSlice5 := slice5Value.(storagescan.SliceArrayValueI).Index(1)
 
@@ -219,29 +215,27 @@ func GetSliceValue() {
 
 }
 
-
 // array usage is consistent with slice
 func GetArrayValue() {
 	array1 := storagescan.SolidityArray{
 		SlotIndex: common.HexToHash("0x11"),
-		UnitTyp:   &storagescan.SolidityUint{
-			Length:    8,
+		UnitTyp: &storagescan.SolidityUint{
+			Length: 8,
 		},
 		UnitLength: 5,
 	}
 	array1Value := array1.Value(RopstenTestNet())
-	log.Printf("array1Value:%v\n",array1Value)
+	log.Printf("array1Value:%v\n", array1Value)
 
 	array2 := storagescan.SolidityArray{
 		SlotIndex:  common.HexToHash("0x12"),
 		UnitLength: 5,
-		UnitTyp:    &storagescan.SolidityUint{
-			Length:    256,
+		UnitTyp: &storagescan.SolidityUint{
+			Length: 256,
 		},
 	}
 	array2Value := array2.Value(RopstenTestNet())
-	log.Printf("array2Value:%v\n",array2Value)
-
+	log.Printf("array2Value:%v\n", array2Value)
 
 	array5 := storagescan.SolidityArray{
 		SlotIndex: common.HexToHash("0x1a"),
@@ -257,7 +251,6 @@ func GetArrayValue() {
 					V: &storagescan.SolidityString{},
 					I: 1,
 				},
-
 			},
 		},
 		UnitLength: 2,
@@ -265,13 +258,11 @@ func GetArrayValue() {
 	array5Value := array5.Value(RopstenTestNet())
 	log.Printf("array5Value:%v\n", array5Value)
 
-
 	index1ValueOfArray5 := array5Value.(storagescan.SliceArrayValueI).Index(1)
 
 	log.Printf("array5 index 1 value->%v\n", index1ValueOfArray5)
 
 }
-
 
 func GetMappingValue() {
 	mapping1 := storagescan.SolidityMapping{
@@ -283,11 +274,10 @@ func GetMappingValue() {
 	mapping1KeyValue := mapping1.Value(RopstenTestNet()).(storagescan.MappingValueI).Key("1")
 	log.Printf("mapping1KeyValue:%v\n", mapping1KeyValue)
 
-
 	mapping6 := storagescan.SolidityMapping{
 		SlotIndex: common.HexToHash("0x23"),
 		KeyTyp:    storagescan.UintTy,
-		ValueTyp:  &storagescan.SolidityStruct{
+		ValueTyp: &storagescan.SolidityStruct{
 			FiledValueMap: map[string]struct {
 				V storagescan.Variable
 				I uint64
@@ -299,16 +289,10 @@ func GetMappingValue() {
 					V: &storagescan.SolidityString{},
 					I: 1,
 				},
-
 			},
 		},
 	}
 	mapping6KeyValue := mapping6.Value(RopstenTestNet()).(storagescan.MappingValueI).Key("123")
 	log.Printf("mapping6KeyValue:%v\n", mapping6KeyValue)
 
-
-
-
 }
-
-

@@ -32,6 +32,10 @@ type Variable interface {
 	Typ() SolidityTyp
 
 	Value(f GetValueStorageAtFunc) interface{}
+
+	Len() uint
+
+	Slot() common.Hash
 }
 
 // Type enumerator
@@ -92,6 +96,14 @@ func (s SolidityInt) Value(f GetValueStorageAtFunc) interface{} {
 
 }
 
+func (s SolidityInt) Len() uint {
+	return s.Length
+}
+
+func (s SolidityInt) Slot() common.Hash {
+	return s.SlotIndex
+}
+
 type SolidityUint struct {
 	SlotIndex common.Hash
 
@@ -123,6 +135,14 @@ func (s SolidityUint) Value(f GetValueStorageAtFunc) interface{} {
 
 }
 
+func (s SolidityUint) Len() uint {
+	return s.Length
+}
+
+func (s SolidityUint) Slot() common.Hash {
+	return s.SlotIndex
+}
+
 type SolidityAddress struct {
 	SlotIndex common.Hash
 
@@ -144,6 +164,14 @@ func (s SolidityAddress) Value(f GetValueStorageAtFunc) interface{} {
 	vb.And(vb, lengthOffset)
 
 	return common.BytesToAddress(vb.Bytes())
+}
+
+func (s SolidityAddress) Len() uint {
+	return 160
+}
+
+func (s SolidityAddress) Slot() common.Hash {
+	return s.SlotIndex
 }
 
 type SolidityBool struct {
@@ -168,6 +196,14 @@ func (s SolidityBool) Value(f GetValueStorageAtFunc) interface{} {
 	vb.And(vb, lengthOffset)
 	return vb.Uint64() == 1
 
+}
+
+func (s SolidityBool) Len() uint {
+	return 8
+}
+
+func (s SolidityBool) Slot() common.Hash {
+	return s.SlotIndex
 }
 
 type SolidityString struct {
@@ -244,6 +280,14 @@ func (s SolidityString) Value(f GetValueStorageAtFunc) interface{} {
 
 }
 
+func (s SolidityString) Len() uint {
+	return 256
+}
+
+func (s SolidityString) Slot() common.Hash {
+	return s.SlotIndex
+}
+
 type SolidityBytes struct {
 	SlotIndex common.Hash
 
@@ -268,6 +312,14 @@ func (s SolidityBytes) Value(f GetValueStorageAtFunc) interface{} {
 
 	return string(common.TrimRightZeroes(vb.Bytes()))
 
+}
+
+func (s SolidityBytes) Len() uint {
+	return s.Length
+}
+
+func (s SolidityBytes) Slot() common.Hash {
+	return s.SlotIndex
 }
 
 // bytes = byte[] = uint8[]
@@ -338,10 +390,24 @@ func (s SoliditySlice) Value(f GetValueStorageAtFunc) interface{} {
 			length:    length,
 			f:         f,
 		}
+	case SliceTy:
+		{
+			ss := s.UnitTyp.(*SoliditySlice)
+			return ss.Value(f)
+
+		}
 
 	}
 	return nil
 
+}
+
+func (s SoliditySlice) Len() uint {
+	return 256
+}
+
+func (s SoliditySlice) Slot() common.Hash {
+	return s.SlotIndex
 }
 
 type SolidityArray struct {
@@ -416,15 +482,18 @@ func (s SolidityArray) Value(f GetValueStorageAtFunc) interface{} {
 
 }
 
+func (s SolidityArray) Len() uint {
+	return uint(s.UnitLength) * s.UnitTyp.Len()
+}
+
+func (s SolidityArray) Slot() common.Hash {
+	return s.SlotIndex
+}
+
 type SolidityStruct struct {
 	SlotIndex common.Hash
 	// field name and value mapping
-	FiledValueMap map[string]struct {
-		// field value type
-		V Variable
-		// the struct position slot index
-		I uint64
-	}
+	FiledValueMap map[string]Variable
 }
 
 func (s SolidityStruct) Typ() SolidityTyp {
@@ -438,6 +507,18 @@ func (s SolidityStruct) Value(f GetValueStorageAtFunc) interface{} {
 		f:             f,
 	}
 
+}
+
+func (s SolidityStruct) Len() uint {
+	var length uint
+	for _, v := range s.FiledValueMap {
+		length += v.Len()
+	}
+	return length
+}
+
+func (s SolidityStruct) Slot() common.Hash {
+	return s.SlotIndex
 }
 
 type SolidityMapping struct {
@@ -461,4 +542,12 @@ func (s SolidityMapping) Value(f GetValueStorageAtFunc) interface{} {
 	}
 	return m
 
+}
+
+func (s SolidityMapping) Len() uint {
+	return 256
+}
+
+func (s SolidityMapping) Slot() common.Hash {
+	return s.SlotIndex
 }

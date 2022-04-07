@@ -204,11 +204,8 @@ func (b BytesSliceValue) String() string {
 }
 
 type StructSliceValue struct {
-	slotIndex     common.Hash
-	filedValueMap map[string]struct {
-		V Variable
-		I uint64
-	}
+	slotIndex       common.Hash
+	filedValueMap   map[string]Variable
 	length          uint64
 	f               GetValueStorageAtFunc
 	structSlotCount uint64
@@ -220,8 +217,8 @@ func (s StructSliceValue) maxSlotCount() uint64 {
 	}
 	var max uint64
 	for _, fieldValue := range s.filedValueMap {
-		if fieldValue.I > max {
-			max = fieldValue.I
+		if fieldValue.Slot().Big().Uint64() > max {
+			max = fieldValue.Slot().Big().Uint64()
 		}
 	}
 	s.structSlotCount = max

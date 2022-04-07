@@ -4,8 +4,6 @@ StorageScan is a contract variable query tool on EVM chain (ETH BSC HECO...)
 Through the getStorageAt() function, it allows us to get the value of the variable according to the slot address, including the private variable,
 enjoy it!
 
-Generate variable objects from the Solidity code of the contract, under development...
-
 ## Quick Start
 
 examples
@@ -13,7 +11,7 @@ examples
 
 - RPCNode: https://ropsten.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161
 
-- Contract Address: 0xd9fc1c8ab7e6e06c5f67128b8000dce15f6baafa
+- Contract Address: 0x24302f327764f94c15d930f5Ac70D362B4a156F9
 
 contract solidity code
 ```solidity
@@ -107,56 +105,106 @@ contract StorageScan {
 
 
 ```
+generate storage_layout json strings  by solc compiler
+
+
+```shell 
+  
+solc --storage-layout storage_scan_examples.sol
+
+```
+
+like this (incomplete):
+
+```json
+{
+  "storage": [
+    {
+      "astId": 5,
+      "contract": "storage_scan_examples.sol:StorageScan",
+      "label": "int1",
+      "offset": 0,
+      "slot": "0",
+      "type": "t_int8"
+    }
+  ],
+  "types": {
+    "t_uint8": {
+      "encoding": "inplace",
+      "label": "uint8",
+      "numberOfBytes": "1"
+    }
+  }
+}
+
+
+```
 
 get contract variable value
+
+
 ```go
 import "github.com/MetaplasiaTeam/storagescan"
 
-var RopstenTestNet = storagescan.GenGetStorageValueFunc(context.Background(), "https://ropsten.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161", common.HexToAddress("0x24302f327764f94c15d930f5ac70d362b4a156f9"))
-intValue := storagescan.SolidityInt{
-        SlotIndex: common.HexToHash("0x0"),
-        Length:    256,
-        Offset:    0,
+var (
+    rpcNode = "https://ropsten.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161"
+    contractAddress = "0x24302f327764f94c15d930f5Ac70D362B4a156F9"
+    storageLayoutJson = `
+{
+  "storage": [
+    {
+      "astId": 5,
+      "contract": "storage_scan_examples.sol:StorageScan",
+      "label": "int1",
+      "offset": 0,
+      "slot": "0",
+      "type": "t_int8"
     }
-    
-log.Printf("value:%v\n", intValue.Value(RopstenTestNet))
+  ],
+  "types": {
+    "t_int8": {
+      "encoding": "inplace",
+      "label": "int8",
+      "numberOfBytes": "1"
+    }
+  }
+}
+`
+)
+// base
+c := storagescan.NewContract(common.HexToAddress(contractAddress), rpcNode)
+err := c.ParseByStorageLayout(storageLayoutJson)
+if err != nil {
+    fmt.Println(err)
+}
+int1 := c.GetVariableValue("int1")
+log.Printf("value:%v\n", int1)
 // output: value:-8
 
-sructValue := storagescan.SolidityStruct{
-    SlotIndex: common.HexToHash("0xa"),
-    FiledValueMap: map[string]struct {
-        V storagescan.Variable
-        I uint64
-    }{
-        "id": {
-            V: &storagescan.SolidityUint{
-                Length: 256,
-            },
-            I: 0,
-        },
-        "value": {
-            V: &storagescan.SolidityString{},
-            I: 1,
-        },
-    },
-}
-
-structIValue := sructValue.Value(RopstenTestNet())
-log.Printf("structValue:%v\n", structIValue)
+// struct
+i := c.GetVariableValue("i")
+log.Printf("structValue:%v\n", i)
 // output: structValue: struct{id:1 value:entity}
-
-valueFieldValue := structValue.(storagescan.StructValueI).Field("value")
+valueFieldValue := i.(storagescan.StructValueI).Field("value")
 log.Printf("'valueFieldValue:%v\n", valueFieldValue)
 // output: valueFieldValue: entity
 
-    
+// array,slice
+slice1 := c.GetVariableValue("slice1")
+log.Printf("'sliceValue:%v\n", slice1)
+// output: sliceValue: [1 2 3 4 5]
 
+indexOfSlice := slice1.(storagescan.SliceArrayValueI).Index(0)
+log.Printf("'indexOfSliceValue:%v\n", indexOfSlice)
+// output: indexOfSliceValue: 1
 
-
-
+// mapping
+mapping1 := c.GetVariableValue("mapping1")
+mappingValueByKey := mapping1.(storagescan.MappingValueI).Key("1")
+log.Printf("'mappingValueByKey:%v\n", mappingValueByKey)
+// output: mappingValueByKey: mapping1
 
 
 
 ```
 
-For more use cases, refer to `storagescan.go` in the `examples` directory.

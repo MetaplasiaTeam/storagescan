@@ -16,10 +16,7 @@ type StructValueI interface {
 type StructValue struct {
 	baseSlotIndex common.Hash
 
-	filedValueMap map[string]struct {
-		V Variable
-		I uint64
-	}
+	filedValueMap map[string]Variable
 
 	f GetValueStorageAtFunc
 }
@@ -30,12 +27,16 @@ func (s StructValue) Field(fd string) interface{} {
 		return nil
 	}
 
-	slotIndex := new(big.Int)
-	slotIndex.Add(s.baseSlotIndex.Big(), big.NewInt(int64(filedValue.I)))
-	// convert the slotIndex to common.Hash and assign it to the SlotIndex field of filed Value.V, using reflection
-	reflect.ValueOf(filedValue.V).Elem().FieldByName("SlotIndex").Set(reflect.ValueOf(common.BigToHash(slotIndex)))
+	oldSlot := filedValue.Slot()
 
-	return filedValue.V.Value(s.f)
+	slotIndex := new(big.Int)
+	slotIndex.Add(s.baseSlotIndex.Big(), filedValue.Slot().Big())
+
+	// convert the slotIndex to common.Hash and assign it to the SlotIndex field of filed Value.V, using reflection
+	reflect.ValueOf(filedValue).Elem().FieldByName("SlotIndex").Set(reflect.ValueOf(common.BigToHash(slotIndex)))
+	value := filedValue.Value(s.f)
+	reflect.ValueOf(filedValue).Elem().FieldByName("SlotIndex").Set(reflect.ValueOf(oldSlot))
+	return value
 
 }
 

@@ -1,4 +1,4 @@
-module github.com/yonghenghuanmie/storagescan
+module github.com/MetaplasiaTeam/storagescan
 
 go 1.17
 

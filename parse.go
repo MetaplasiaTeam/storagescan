@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"reflect"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -46,6 +47,11 @@ type Contract struct {
 	StorageLayout StorageLayout `json:"storage_layout"`
 }
 
+type VariableDesc struct {
+	Name string `json:"name"`
+	Type string `json:"type"`
+}
+
 func NewContract(address common.Address, rpcNode string) *Contract {
 	return &Contract{
 		Address:   address,
@@ -55,14 +61,12 @@ func NewContract(address common.Address, rpcNode string) *Contract {
 }
 
 func (c Contract) ParseByStorageLayout(layOutJson string) (err error) {
-	var layout StorageLayout
-	err = json.Unmarshal([]byte(layOutJson), &layout)
+	err = json.Unmarshal([]byte(layOutJson), &c.StorageLayout)
 	if err != nil {
 		err = fmt.Errorf("parse storage layout error: %v", err)
 		return
 	}
-	c.StorageLayout = layout
-	for _, s := range layout.Storage {
+	for _, s := range c.StorageLayout.Storage {
 		variableName := s.Label
 		offset := s.Offset * 8
 		sb := new(big.Int)
@@ -82,6 +86,21 @@ func (c Contract) ParseByStorageLayout(layOutJson string) (err error) {
 
 func (c Contract) GetVariableValue(name string) interface{} {
 	return c.Variables[name].Value(GenGetStorageValueFunc(context.Background(), c.RPCNode, c.Address))
+}
+
+func (c Contract) GetAllVariables() []VariableDesc {
+	var variables []VariableDesc
+	for k, v := range c.Variables {
+		variables = append(variables, VariableDesc{
+			Name: k,
+			Type: v.Typ().String(),
+		})
+	}
+	// sort by name
+	sort.Slice(variables, func(i, j int) bool {
+		return variables[i].Name < variables[j].Name
+	})
+	return variables
 }
 
 func (c Contract) getVariableByVariableType(vt string) Variable {

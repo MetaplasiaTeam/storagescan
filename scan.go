@@ -52,6 +52,33 @@ const (
 	StructTy
 )
 
+func (t SolidityTyp) String() string {
+	switch t {
+	case IntTy:
+		return "int"
+	case UintTy:
+		return "uint"
+	case BoolTy:
+		return "bool"
+	case StringTy:
+		return "string"
+	case SliceTy:
+		return "slice"
+	case ArrayTy:
+		return "array"
+	case MappingTy:
+		return "mapping"
+	case AddressTy:
+		return "address"
+	case BytesTy:
+		return "bytes"
+	case StructTy:
+		return "struct"
+	default:
+		return "unknown"
+	}
+}
+
 type SolidityInt struct {
 	SlotIndex common.Hash
 

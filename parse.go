@@ -151,8 +151,15 @@ func (c Contract) getVariableByVariableType(vt string) Variable {
 				if vtForm.Label == "bool" {
 					return &SolidityBool{}
 				}
+				// enum
+				if strings.HasPrefix(vtForm.Label, "enum") {
+					bytesLen, _ := strconv.ParseUint(vtForm.NumberOfBytes, 10, 64)
+					return &SolidityUint{
+						Length: uint(bytesLen) * 8,
+					}
+				}
 
-				if strings.Contains(vtForm.Label, "struct") {
+				if strings.HasPrefix(vtForm.Label, "struct") {
 					filedValueMap := make(map[string]Variable)
 					for _, m := range vtForm.Members {
 						offset := m.Offset * 8
@@ -184,7 +191,6 @@ func (c Contract) getVariableByVariableType(vt string) Variable {
 			}
 
 		case "dynamic_array":
-
 			return &SoliditySlice{
 				UnitTyp: c.getVariableByVariableType(vtForm.Base),
 			}

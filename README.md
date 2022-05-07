@@ -144,7 +144,12 @@ get contract variable value
 
 
 ```go
-import "github.com/MetaplasiaTeam/storagescan"
+import (
+    "fmt"
+    "github.com/MetaplasiaTeam/storagescan"
+    "github.com/ethereum/go-ethereum/common"
+    "log"
+)
 
 var (
     rpcNode = "https://ropsten.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161"

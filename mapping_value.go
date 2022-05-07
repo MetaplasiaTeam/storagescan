@@ -1,6 +1,7 @@
 package storagescan
 
 import (
+	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"math/big"
@@ -11,6 +12,7 @@ import (
 
 type MappingValueI interface {
 	Key(k string) interface{}
+	String() string
 }
 
 type MappingValue struct {
@@ -48,6 +50,10 @@ func (m MappingValue) Key(k string) interface{} {
 
 	return m.valueTyp.Value(m.f)
 
+}
+
+func (m MappingValue) String() string {
+	return fmt.Sprintf("mapping{key:%s,value:%s}", m.keyTyp, m.valueTyp.Typ())
 }
 
 func encodeHexString(v string) []byte {

@@ -158,6 +158,10 @@ func (c Contract) getVariableByVariableType(vt string) Variable {
 						Length: uint(bytesLen) * 8,
 					}
 				}
+				// contract
+				if strings.HasPrefix(vtForm.Label, "contract") {
+					return &SolidityAddress{}
+				}
 
 				if strings.HasPrefix(vtForm.Label, "struct") {
 					filedValueMap := make(map[string]Variable)

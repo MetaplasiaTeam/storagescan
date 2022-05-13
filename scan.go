@@ -153,9 +153,9 @@ func (s SolidityUint) Value(f GetValueStorageAtFunc) interface{} {
 
 	vb.And(vb, mask)
 
-	// if vb > uint64 max, return hex string, else return uint64
+	// if vb > uint64 max, return string, else return uint64
 	if vb.Cmp(big.NewInt(0).SetUint64(1<<64-1)) > 0 {
-		return common.BigToHash(vb).Hex()
+		return vb.String()
 	} else {
 		return vb.Uint64()
 	}
